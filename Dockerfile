@@ -1,4 +1,4 @@
-# Use the official Node.js 18 image based on Alpine Linux (lightweight) added 
+#updated Use the official Node.js 18 image based on Alpine Linux (lightweight) added 
 FROM node:18-alpine
 
 # Set the working directory inside the container

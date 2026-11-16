@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: node-app
-        image: sachin7840/my-app:3970c1a1e281626e39100a42bae029014f28ae04
+        image: "${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}"
         ports:
         - containerPort: 3000
