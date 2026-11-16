@@ -72,30 +72,32 @@ jobs:
                     --username ${{ secrets.ARGOCD_USERNAME }} \
                     --password ${{ secrets.ARGOCD_PASSWORD }} \
                     --insecure
-            - name: Update deployment.yaml with newly built image
-              run: |
-                git config user.name "${{ secrets.GIT_USERNAME }}"
-                git config user.email "${{ secrets.GIT_EMAIL }}"
-                git fetch origin
-                git checkout main
-                git pull origin main
-                pwd
-                cat manifest/deployment.yaml
-                pwd
-                sed -i "s+${{ secrets.DOCKERHUB_USERNAME }}/my-app.*+${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}+g" manifest/deployment.yaml
-                cat manifest/deployment.yaml
 
-            - name: Commit and Push Updated deployment.yaml
+            
+            - name: Update and push deployment image
+              env:
+                IMAGE: "${{ secrets.DOCKERHUB_USERNAME }}/my-app:${{ github.sha }}"
               run: |
-                git config user.name "${{ secrets.GIT_USERNAME }}"
-                git config user.email "${{ secrets.GIT_EMAIL }}"
-                git remote set-url origin https://$GIT_USERNAME:$PERSONAL_ACCESS_TOKEN@github.com/${{ github.repository }}.git
-                git fetch origin
+                set -euo pipefail
+
+                git config user.name "$GIT_USERNAME"
+                git config user.email "$GIT_EMAIL"
+
                 git checkout main
-                git pull origin main
-                git add .
-                git commit -m "Update image to my-app:${{ github.sha }}"
-                git push origin main
+                git pull --ff-only origin main
+
+                # Replace the whole image line in this single-container manifest.
+                sed -i -E "s|^([[:space:]]*)image:.*$|\1image: \"$IMAGE\"|" manifest/deployment.yaml
+
+                cat manifest/deployment.yaml
+                git add manifest/deployment.yaml
+
+                if git diff --cached --quiet; then
+                  echo "Image is already up to date."
+                else
+                  git commit -m "Update image to my-app:${{ github.sha }} [skip ci]"
+                  git push origin main
+                fi
 
             - name: Refresh ArgoCD App and Sync
               run: argocd app sync my-app
